@@ -1,0 +1,32 @@
+
+# Core
+pandas
+numpy
+python-dotenv
+pydantic
+
+# Machine Learning
+scikit-learn
+
+# Agentic AI and RAG
+langchain
+langgraph
+langchain-neo4j
+langchain-aws
+
+# Graph Database
+neo4j
+
+# AWS Integration
+boto3
+
+# Backend
+fastapi
+uvicorn
+
+# Frontend
+streamlit
+
+# Testing
+pytest
+httpx
