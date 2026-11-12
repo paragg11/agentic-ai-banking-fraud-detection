@@ -6,6 +6,7 @@ from typing import TypedDict, Any
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from langgraph.graph import StateGraph, END
+from langchain_ollama import ChatOllama
 
 
 # ============================================================
@@ -64,6 +65,10 @@ class FraudInvestigationAgent:
         )
 
         self.driver.verify_connectivity()
+        self.llm = ChatOllama(
+        model="mistral:latest",
+         temperature=0
+        )
 
         print("Fraud Investigation Agent initialized.")
 
@@ -432,6 +437,57 @@ INVESTIGATION SUMMARY
              END OF INVESTIGATION
 ==================================================
 """
+
+
+        # AI-POWERED INVESTIGATION ANALYSIS
+        try:
+            prompt = f"""
+You are a banking fraud investigation assistant.
+
+Analyze the following transaction investigation data.
+
+TRANSACTION:
+{json.dumps(transaction, indent=2, default=str)}
+
+CUSTOMER:
+{json.dumps(customer, indent=2, default=str)}
+
+MERCHANT:
+{json.dumps(merchant, indent=2, default=str)}
+
+INVESTIGATION FINDINGS:
+{json.dumps(findings, indent=2, default=str)}
+
+DETERMINISTIC RISK SCORE: {risk_score}
+DETERMINISTIC RISK LEVEL: {risk_level}
+
+Instructions:
+1. Explain the investigation findings.
+2. Identify suspicious indicators supported by the data.
+3. Explain why the assigned risk level is appropriate.
+4. Recommend practical investigation actions.
+5. Do not invent missing information.
+6. Do not modify the risk score or risk level.
+7. Do not claim fraud is confirmed without sufficient evidence.
+
+Write a concise professional investigation analysis.
+"""
+
+            response = self.llm.invoke(prompt)
+            ai_analysis = response.content.strip()
+
+            if ai_analysis:
+                report = report.replace(
+                    "END OF INVESTIGATION",
+                    "AI INVESTIGATION ANALYSIS\n\n"
+                    + ai_analysis
+                    + "\n\nEND OF INVESTIGATION"
+                )
+
+        except Exception as e:
+            print(f"Mistral analysis unavailable: {e}")
+            print("Using deterministic investigation report.")
+
 
         print(report)
 
