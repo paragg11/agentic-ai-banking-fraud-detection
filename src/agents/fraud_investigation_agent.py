@@ -1,7 +1,7 @@
 
 import os
 import json
-from typing import TypedDict, Any
+from typing import TypedDict
 
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
@@ -42,6 +42,7 @@ class InvestigationState(TypedDict, total=False):
     risk_level: str
     amount: float
 
+
 # ============================================================
 # 3. FRAUD INVESTIGATION AGENT
 # ============================================================
@@ -65,9 +66,10 @@ class FraudInvestigationAgent:
         )
 
         self.driver.verify_connectivity()
+
         self.llm = ChatOllama(
-        model="mistral:latest",
-         temperature=0
+            model="mistral:latest",
+            temperature=0
         )
 
         print("Fraud Investigation Agent initialized.")
@@ -129,17 +131,15 @@ class FraudInvestigationAgent:
                 f"Transaction {transaction_id} not found."
             )
 
-        record = records[0]
-
         print("Transaction details fetched.")
 
         return {
             **state,
-            **record
+            **records[0]
         }
 
     # ========================================================
-    # 6. CHECK SHARED DEVICES
+    # 6. INVESTIGATE SHARED DEVICES
     # ========================================================
 
     def investigate_shared_device(self, state):
@@ -180,7 +180,7 @@ class FraudInvestigationAgent:
         }
 
     # ========================================================
-    # 7. CHECK SHARED IP ADDRESSES
+    # 7. INVESTIGATE SHARED IP ADDRESSES
     # ========================================================
 
     def investigate_shared_ip(self, state):
@@ -221,7 +221,7 @@ class FraudInvestigationAgent:
         }
 
     # ========================================================
-    # 8. CUSTOMER TRANSACTION HISTORY
+    # 8. FETCH CUSTOMER TRANSACTION HISTORY
     # ========================================================
 
     def fetch_customer_history(self, state):
@@ -298,11 +298,15 @@ class FraudInvestigationAgent:
             shared_ip.get("related_customers") or 0
         )
 
+        # High-value transaction
+
         if amount >= 50000:
 
             findings.append(
                 "High-value transaction detected."
             )
+
+        # Shared device detection
 
         if related_device_customers > 0:
 
@@ -311,12 +315,16 @@ class FraudInvestigationAgent:
                 f"{related_device_customers} other customers."
             )
 
+        # Shared IP detection
+
         if related_ip_customers > 0:
 
             findings.append(
                 f"IP address is associated with "
                 f"{related_ip_customers} other customers."
             )
+
+        # Risk score analysis
 
         if risk_score >= 60:
 
@@ -329,6 +337,8 @@ class FraudInvestigationAgent:
             findings.append(
                 "Medium risk score detected."
             )
+
+        # Customer transaction history
 
         history = state.get("customer_history", [])
 
@@ -368,11 +378,25 @@ class FraudInvestigationAgent:
 
         merchant = state.get("merchant") or {}
 
+        device = state.get("device") or {}
+
+        ip_address = state.get("ip_address") or {}
+
+        shared_device = state.get("shared_device") or {}
+
+        shared_ip = state.get("shared_ip") or {}
+
+        customer_history = state.get("customer_history", [])
+
         findings = state.get("findings", [])
 
         risk_score = state.get("risk_score", 0)
 
         risk_level = state.get("risk_level", "UNKNOWN")
+
+        # ----------------------------------------------------
+        # DETERMINISTIC INVESTIGATION REPORT
+        # ----------------------------------------------------
 
         report = f"""
 ==================================================
@@ -386,6 +410,35 @@ Customer ID    : {customer.get('customer_id')}
 Merchant ID    : {merchant.get('merchant_id')}
 Amount         : {transaction.get('amount')}
 Timestamp      : {transaction.get('timestamp')}
+
+--------------------------------------------------
+
+DEVICE DETAILS
+
+Device ID      : {device.get('device_id')}
+Device Type    : {device.get('device_type')}
+
+IP DETAILS
+
+IP Address     : {ip_address.get('ip_address')}
+
+--------------------------------------------------
+
+SHARED DEVICE ANALYSIS
+
+Related Transactions : {shared_device.get('related_transactions', 0)}
+Related Customers    : {shared_device.get('related_customers', 0)}
+
+SHARED IP ANALYSIS
+
+Related Transactions : {shared_ip.get('related_transactions', 0)}
+Related Customers    : {shared_ip.get('related_customers', 0)}
+
+--------------------------------------------------
+
+CUSTOMER HISTORY
+
+Recent Transactions : {len(customer_history)}
 
 --------------------------------------------------
 
@@ -408,6 +461,7 @@ INVESTIGATION FINDINGS
 --------------------------------------------------
 
 INVESTIGATION SUMMARY
+
 """
 
         if risk_level == "HIGH":
@@ -438,9 +492,12 @@ INVESTIGATION SUMMARY
 ==================================================
 """
 
+        # ----------------------------------------------------
+        # AI-POWERED INVESTIGATION ANALYSIS USING MISTRAL
+        # ----------------------------------------------------
 
-        # AI-POWERED INVESTIGATION ANALYSIS
         try:
+
             prompt = f"""
 You are a banking fraud investigation assistant.
 
@@ -455,13 +512,30 @@ CUSTOMER:
 MERCHANT:
 {json.dumps(merchant, indent=2, default=str)}
 
+DEVICE:
+{json.dumps(device, indent=2, default=str)}
+
+IP ADDRESS:
+{json.dumps(ip_address, indent=2, default=str)}
+
+SHARED DEVICE:
+{json.dumps(shared_device, indent=2, default=str)}
+
+SHARED IP:
+{json.dumps(shared_ip, indent=2, default=str)}
+
+CUSTOMER HISTORY:
+{json.dumps(customer_history, indent=2, default=str)}
+
 INVESTIGATION FINDINGS:
 {json.dumps(findings, indent=2, default=str)}
 
 DETERMINISTIC RISK SCORE: {risk_score}
+
 DETERMINISTIC RISK LEVEL: {risk_level}
 
 Instructions:
+
 1. Explain the investigation findings.
 2. Identify suspicious indicators supported by the data.
 3. Explain why the assigned risk level is appropriate.
@@ -469,14 +543,17 @@ Instructions:
 5. Do not invent missing information.
 6. Do not modify the risk score or risk level.
 7. Do not claim fraud is confirmed without sufficient evidence.
+8. Distinguish between suspicious patterns and confirmed fraud.
 
 Write a concise professional investigation analysis.
 """
 
             response = self.llm.invoke(prompt)
+
             ai_analysis = response.content.strip()
 
             if ai_analysis:
+
                 report = report.replace(
                     "END OF INVESTIGATION",
                     "AI INVESTIGATION ANALYSIS\n\n"
@@ -485,9 +562,12 @@ Write a concise professional investigation analysis.
                 )
 
         except Exception as e:
-            print(f"Mistral analysis unavailable: {e}")
-            print("Using deterministic investigation report.")
 
+            print(f"Mistral analysis unavailable: {e}")
+
+            print(
+                "Using deterministic investigation report."
+            )
 
         print(report)
 
@@ -534,7 +614,11 @@ Write a concise professional investigation analysis.
             self.generate_report
         )
 
+        # Entry point
+
         workflow.set_entry_point("fetch_transaction")
+
+        # Sequential investigation pipeline
 
         workflow.add_edge(
             "fetch_transaction",
