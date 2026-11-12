@@ -545,7 +545,7 @@ with st.sidebar:
     st.subheader("Session Investigations")
     st.metric("Total Investigations", len(st.session_state.investigation_history))
 
-    if st.button("Clear Session History", use_container_width=True):
+    if st.button("Clear Session History", width="stretch"):
         st.session_state.investigation_history = []
         st.session_state.last_result = None
         st.rerun()
@@ -573,7 +573,7 @@ with st.form("investigation_form"):
     submitted = st.form_submit_button(
         "🚀 Investigate Transaction",
         type="primary",
-        use_container_width=False,
+        width="content",
     )
 
 if submitted:
@@ -721,7 +721,7 @@ if last_result:
         if device_customers:
             st.dataframe(
                 pd.DataFrame({"Related Customer ID": device_customers}),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         else:
@@ -741,7 +741,7 @@ if last_result:
         if ip_customers:
             st.dataframe(
                 pd.DataFrame({"Related Customer ID": ip_customers}),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         else:
@@ -806,7 +806,7 @@ if last_result:
 
         st.dataframe(
             filtered_df[visible_columns] if visible_columns else filtered_df,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -848,7 +848,7 @@ if last_result:
         "For readability, up to 10 related customers per shared resource are displayed."
     )
     try:
-        st.graphviz_chart(create_fraud_graph(data), use_container_width=True)
+        st.graphviz_chart(create_fraud_graph(data), width="stretch")
     except Exception as exc:
         st.warning(
             "The relationship data is available, but Graphviz rendering failed. "
@@ -902,7 +902,7 @@ st.header("📚 Investigation History")
 
 if st.session_state.investigation_history:
     history_df = pd.DataFrame(st.session_state.investigation_history)
-    st.dataframe(history_df, use_container_width=True, hide_index=True)
+    st.dataframe(history_df, width="stretch", hide_index=True)
 else:
     st.info("No investigation history available in this session.")
 
