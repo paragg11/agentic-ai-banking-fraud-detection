@@ -10,10 +10,8 @@ __pycache__/
 venv/
 .venv/
 env/
-.env
-.venv/
-__pycache__/
-*.pyc
+.env/
+.agents/
 
 # Environment variables and secrets
 .env
